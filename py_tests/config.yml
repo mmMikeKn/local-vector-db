@@ -1,0 +1,35 @@
+http:
+  host: 0.0.0.0
+  llm: Qwen3-Coder-REAP-25B-A3B-MXFP4_MOE-GGUF:latest
+  'options:':
+    num_predict: 1000
+  port: 8085
+  prompt_en: User wants to know about "${question}". Shorten this user query to its
+    core meaning. Then use the extracted passages from our knowledge base (below)
+    to form the best answer you can. Show the final answer clearly.
+  prompt_ru: Пользователь хочет знать о "${question}". Дай короткое обобщение по тому
+    что хочет знать пользователь, используя данные предоставлненные им
+  stream: false
+ollama:
+  embedding:
+    chunk_overlap_percent: 40
+    context_size: 2048
+    keep_alive: 24h
+    model: embeddinggemma:latest
+    token_naive_k: 2.2
+  url: http://192.168.0.101:11434
+path:
+  input: input
+  output: db-data
+process:
+  pdf_clip:
+  - footer_height: 50
+    header_height: 50
+    text: Протокол и основные функциональные
+  silent: false
+qdrant:
+  collection_name: my_documents
+  distance: Cosine
+  top_results: 10
+  url: http://192.168.0.101:6333
+  vector_sz: 768

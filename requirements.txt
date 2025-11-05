@@ -1,0 +1,5 @@
+pyyaml
+pymupdf
+langchain-text-splitters
+aiohttp
+

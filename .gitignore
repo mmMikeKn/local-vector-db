@@ -1,0 +1,11 @@
+.git/
+.idea/
+.venv/
+.linux-venv/
+**/__pycache__/
+db-data/
+input/
+tmp/
+qdrant_storage/
+TESTS_DATA/
+**/*.log
