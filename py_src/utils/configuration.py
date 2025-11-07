@@ -4,6 +4,7 @@ import logging
 silent_mode = False
 def_config = {
     'process': {
+        'json_ident': False,
         'silent': False,
         'pdf_clip': [
             {'text': 'Протокол и основные функциональные',

@@ -1,13 +1,15 @@
 import asyncio
 import json
 import logging
+import os
+import re
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from json import JSONDecodeError
 from urllib.parse import unquote
 
 from py_src.ext_api import ollama_api
 from py_src.ext_api import qdrant_api
-from py_src.utils import configuration
+from py_src.utils import configuration, utils
 
 logger = logging.getLogger()
 
@@ -36,7 +38,14 @@ class RequestHandler(BaseHTTPRequestHandler):
             return
 
         if self.path == '/api/question':
-            response = handle_question(request_json)
+            if 'substr' in request_json and request_json['substr']:
+                chunks = handle_question_substr_search(request_json)
+            else:
+                chunks = handle_question_context_search(request_json)
+            response = {
+                'chunks': chunks,
+                'llm': configuration.config['http']['llm'],
+            }
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
             self.end_headers()
@@ -86,7 +95,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"\r\n")
         self.wfile.flush()
 
-def handle_question(request_json):
+def handle_question_context_search(request_json):
     vector, prompt_eval_count = ollama_api.calculate_embedding(request_json['question'])
     data = qdrant_api.do_search(vector, request_json.get('topic'), request_json.get('top_results'))
     sorted_data = sorted(data, key=lambda x: x['score'])
@@ -105,11 +114,37 @@ def handle_question(request_json):
             'document': src_doc,
             'images': pages_png,
         })
-    return {
-        'chunks': chunks,
-        'llm': configuration.config['http']['llm'],
-    }
+    return chunks
 
+
+def handle_question_substr_search(request_json):
+    substr_tokens = re.split(r'[,\\s]+', request_json['question'])
+    substr_tokens = [item.strip().lower() for item in substr_tokens if item.strip()]
+    logger.info(f"handle_question_substr_search. substr_tokens: {substr_tokens}")
+    top_results = configuration.config['qdrant']['top_results']
+    output_path = configuration.config["path"]["output"]
+    chunks = []
+    for root_path, dirs, files in os.walk(output_path):
+        files_json = [file for file in files if file == configuration.chunks_json_file_name]
+        for chunks_json_file_name in files_json:
+            chunks_json = utils.load_json(str(os.path.join(root_path, chunks_json_file_name)))
+            src_doc = chunks_json['src']
+            for chunk in chunks_json['chunks']:
+                text = chunk['text'].lower()
+                if all(token in text for token in substr_tokens):
+                    pages_num = chunk['pages']
+                    pages_png = []
+                    for page in pages_num:
+                        pages_png.append(root_path + '/p' + str(page) + '.png')
+                    chunks.append({
+                        'id': chunk['id'],
+                        'text': text,
+                        'document': src_doc,
+                        'images': pages_png,
+                    })
+                    if len(chunks) == top_results:
+                        return chunks
+    return chunks
 
 def run():
     port = configuration.config['http']['port']

@@ -24,6 +24,11 @@
         input[type=text] {
             width: 50%;
         }
+        input[type=checkbox], button {
+            padding: 10px;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
         .result-item {
             background-color: #ffffff;
             border: 1px solid #e0e0e0;
@@ -56,6 +61,13 @@
         .result-item a:hover {
             text-decoration: underline;
             color: #0056b3;
+        }
+
+        .result-button-container {
+            display: flex;
+            align-items: center;
+            margin-top: 20px;
+            margin-bottom: 20px;
         }
 
         .toggle-button {
@@ -91,12 +103,23 @@
             display: none;
         }
 
-        .spinner {
-            padding: 3px;
+        .spinner-ask-all {
+            padding: 10px;
             display: none;
             border: 4px solid rgba(0, 0, 0, 0.1);
             width: 15px;
             height: 15px;
+            border-radius: 50%;
+            border-left-color: #333;
+            animation: spin 1s linear infinite;
+        }
+
+        .spinner-search {
+            padding: 10px;
+            display: none;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             border-left-color: #333;
             animation: spin 1s linear infinite;
@@ -111,7 +134,9 @@
 <body>
 <div class="input-container">
     <input type="text" id="questionInput" placeholder="Enter your question here..."/>
-    <button onclick="sendRequest()">?</button>
+    <button id="sendRequestButton" onclick="sendRequest()">?</button>
+    <div id="sendRequestSpinner" class="spinner-search"></div>
+    <label><input type="checkbox" id="checkBoxSubstrMode"/>As substring</label>
 </div>
 <div id="results"></div>
 
@@ -126,12 +151,16 @@
         const question = document.getElementById('questionInput').value.trim();
         if(question.length > 0){
             try{
+                document.getElementById('sendRequestButton').style.display = 'none';
+                document.getElementById('sendRequestSpinner').style.display = 'block';
+
+                const substr = document.getElementById('checkBoxSubstrMode').checked;
                 const response = await fetch('api/question', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ question })
+                    body: JSON.stringify({ question, substr })
                 });
 
                 const data = await response.json();
@@ -139,6 +168,8 @@
             } catch(error){
                 console.error("Error:", error);
             }
+            document.getElementById('sendRequestButton').style.display = 'block';
+            document.getElementById('sendRequestSpinner').style.display = 'none';
         }
     }
 
@@ -149,10 +180,12 @@
         for(let result of results['chunks']) {
             let itemHtml = `
                 <div class="result-item">
-                    <button class="toggle-button" onclick='toggleVisibilityByElId("${result.id}")'>Show/hide chunk</button>
-                    <button class="toggle-button-ask-llm" onclick='askLMM("${result.id}", "a-${result.id}", "s-${result.id}")'>Ask LMM '${results['llm']}'</button>
-                    <button id='s-${result.id}' class="toggle-button-stop-ask-llm" onclick='stopAskLMM("s-${result.id}")'>Stop asking LMM'</button>
-                    <div class="spinner"></div>
+                    <div class="result-button-container">
+                        <button class="toggle-button" onclick='toggleVisibilityByElId("${result.id}")'>Show/hide chunk</button>
+                        <button class="toggle-button-ask-llm" onclick='askLMM("${result.id}", "a-${result.id}", "s-${result.id}")'>Ask LMM '${results['llm']}'</button>
+                        <button id='s-${result.id}' class="toggle-button-stop-ask-llm" onclick='stopAskLMM("s-${result.id}")'>Stop asking LMM'</button>
+                    </div>
+                    <div class="spinner-ask-all"></div>
                     <div id='${result.id}' class='chunk-text'>${result.text}"</div>
                     <div id='a-${result.id}' class='lmm-answer'></div>
                     <div>
@@ -185,7 +218,7 @@
         answerEl.style.display = 'block';
         stopButton.style.display = 'block';
 
-        document.querySelector('.spinner').style.display = 'block';
+        document.querySelector('.spinner-ask-all').style.display = 'block';
         const response = await fetch('api/llm', {
                     method: 'POST',
                     headers: {
@@ -195,7 +228,7 @@
                 });
         const reader = response.body.getReader();
         const decoder = new TextDecoder('utf-8');
-        document.querySelector('.spinner').style.display = 'none';
+        document.querySelector('.spinner-ask-all').style.display = 'none';
         fill_answer = '';
         while (true) {
             const { done, value } = await reader.read();

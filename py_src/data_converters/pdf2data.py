@@ -24,7 +24,7 @@ def copy_pdf_file_to_output_path(pdf_file, src_path, dst_path, dst_file_pdf):
 
 
 def text_cleaning(text):
-    text = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9.,\s\n]', '', text)
+    text = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9.,\s\n{}\[\]]', '', text)
     text = text.replace(' .', '.')
     text = re.sub(r'\n+', ' ', text)
     text = re.sub(r' +', ' ', text)

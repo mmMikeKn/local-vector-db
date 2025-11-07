@@ -24,7 +24,10 @@ def show_spinner(msg):
 
 def save_json(json_file, json_data):
     with open(json_file, 'w', encoding='utf-8') as f:
-        json.dump(json_data, f, indent=2, ensure_ascii=False)
+        if configuration.config['process'].get('json_ident'):
+            json.dump(json_data, f, indent=2, ensure_ascii=False)
+        else:
+            json.dump(json_data, f, ensure_ascii=False)
 
 def load_json(json_file):
     with open(json_file, 'r', encoding='utf-8') as f:
