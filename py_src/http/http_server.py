@@ -119,7 +119,7 @@ def handle_question_context_search(request_json):
 
 
 def handle_question_substr_search(request_json):
-    substr_tokens = re.split(r'[,\\s]+', request_json['question'])
+    substr_tokens = re.split(r'[,\s]+', request_json['question'])
     substr_tokens = [item.strip().lower() for item in substr_tokens if item.strip()]
     logger.info(f"handle_question_substr_search. substr_tokens: {substr_tokens}")
     top_results = configuration.config['qdrant']['top_results']
@@ -142,6 +142,8 @@ def handle_question_substr_search(request_json):
                         'text': text,
                         'document': src_doc,
                         'images': pages_png,
+                        'link': chunks_json.get('link'),
+                        'title': chunks_json.get('title'),
                     })
                     if len(chunks) == top_results:
                         return chunks
