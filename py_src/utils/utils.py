@@ -15,6 +15,7 @@ headers = {
     "Content-Type": "application/json"
 }
 
+
 def show_spinner(msg):
     if not configuration.silent_mode:
         global spinner_index
@@ -22,16 +23,16 @@ def show_spinner(msg):
         sys.stdout.write(f'\r{spinner[spinner_index]} {msg}            ')
         sys.stdout.flush()
 
-def save_json(json_file, json_data):
+
+def save_json(json_file, json_data, json_indent=None):
     with open(json_file, 'w', encoding='utf-8') as f:
-        if configuration.config['process'].get('json_ident'):
-            json.dump(json_data, f, indent=2, ensure_ascii=False)
-        else:
-            json.dump(json_data, f, ensure_ascii=False)
+        json.dump(json_data, f, ensure_ascii=False, indent=configuration.get_config_value(['process','json_indent'], json_indent))
+
 
 def load_json(json_file):
     with open(json_file, 'r', encoding='utf-8') as f:
         return json.load(f)
+
 
 def do_http_post(url, json_rq, type_str=''):
     logger.debug(f"Going call {type_str} POST '{url}' with json data '{json.dumps(json_rq, ensure_ascii=False)}'")
@@ -41,7 +42,7 @@ def do_http_post(url, json_rq, type_str=''):
     })
     if response.status_code == 200:
         data = response.json()
-        logger.debug(f"{type_str} HTTP response '{json.dumps(data, ensure_ascii=False), }'")
+        logger.debug(f"{type_str} HTTP response '{json.dumps(data, ensure_ascii=False),}'")
         return data
     else:
         msg = (f"ERROR. {type_str} request POST '{url}' with json data '{json.dumps(json_rq, ensure_ascii=False)}' "

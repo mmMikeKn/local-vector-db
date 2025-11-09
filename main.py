@@ -1,12 +1,9 @@
 import argparse
 import logging.config
-import sys
 import time
 from datetime import timedelta
 
 logger = logging.getLogger()
-
-sys.path.append('./data_convert')
 
 from py_src.utils import configuration
 from py_src.data_converters import data2chunks

@@ -15,6 +15,8 @@ def proc_data_loading_for_one_file(root):
     if not configuration.silent_mode:
         print(f"\rqdrant loading process (vector+payload->qdrant) for file '{chunks_json_file_name}'")
     common_src = chunks_json['src']
+    common_link = chunks_json.get('link')
+    common_title = chunks_json.get('title')
     common_index = '|'.join(chunks_json['index'])
     for cnt, chunk in enumerate(chunks_list):
         utils.show_spinner(f"{math.ceil(cnt / len(chunks_list) * 1000) / 10}%. ")
@@ -24,6 +26,8 @@ def proc_data_loading_for_one_file(root):
                 'root': root,
                 'src': common_src,
                 'text': chunk['text'],
+                'link': common_link,
+                'title': common_title,
                 'pages': chunk['pages'],
             })
 

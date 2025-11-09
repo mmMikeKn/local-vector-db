@@ -32,6 +32,9 @@ def proc_chunk_for_one_file(root):
         'context_size': context_size,
         'token_naive_k': token_naive_k,
         'chunk_overlap_percent': chunk_overlap_percent,
+        'link':  doc_data_json.get('link'), # confluence2pdf.py
+        'title': doc_data_json.get('title'), # confluence2pdf.py
+        'last_date': doc_data_json.get('last_date'), # confluence2pdf.py
         'chunks': []
     }
     chunks_json_list = chunks_json['chunks']

@@ -13,8 +13,8 @@
         .input-container {
             display: flex;
             align-items: center;
-            margin-top: 20px;
-            margin-bottom: 20px;
+            margin-top: 10px;
+            margin-bottom: 10px;
         }
         input[type=text], button {
             padding: 10px;
@@ -46,16 +46,15 @@
         }
 
         .result-item img {
-            max-width: 500px;
+            max-width: 600px;
             margin: 5px;
-            border-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .result-item a {
             color: #1a73e8;
             text-decoration: none;
-            font-weight: bold;
+            margin-right: 30px;
+            font-size: 15px
         }
 
         .result-item a:hover {
@@ -66,8 +65,7 @@
         .result-button-container {
             display: flex;
             align-items: center;
-            margin-top: 20px;
-            margin-bottom: 20px;
+            margin-bottom: 5px;
         }
 
         .toggle-button {
@@ -185,14 +183,15 @@
                         <button class="toggle-button-ask-llm" onclick='askLMM("${result.id}", "a-${result.id}", "s-${result.id}")'>Ask LMM '${results['llm']}'</button>
                         <button id='s-${result.id}' class="toggle-button-stop-ask-llm" onclick='stopAskLMM("s-${result.id}")'>Stop asking LMM'</button>
                     </div>
+                    <div>
+                        <a href='${result.document}' download>${result.document}</a>
+                         ${result.link !== null ? `<a href='${result.link}'>[${result.title}]</a>` : ''}
+                    </div>
                     <div class="spinner-ask-all"></div>
                     <div id='${result.id}' class='chunk-text'>${result.text}"</div>
                     <div id='a-${result.id}' class='lmm-answer'></div>
                     <div>
                         ${result.images.map(img => `<img src='${img}' alt='Image'>`).join('')}
-                    </div>
-                    <div>
-                        <a href='${result.document}' download>${result.document}</a>
                     </div>
                 </div>
                 `;

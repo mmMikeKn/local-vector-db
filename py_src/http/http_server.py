@@ -103,7 +103,6 @@ def handle_question_context_search(request_json):
     for item in sorted_data:
         payload = item['payload']
         root_path = payload['root']
-        src_doc = payload['src']
         pages_num = payload['pages']
         pages_png = []
         for page in pages_num:
@@ -111,7 +110,9 @@ def handle_question_context_search(request_json):
         chunks.append({
             'id': item['id'],
             'text': payload['text'],
-            'document': src_doc,
+            'document': payload['src'],
+            'link': payload.get('link'),
+            'title': payload.get('title'),
             'images': pages_png,
         })
     return chunks

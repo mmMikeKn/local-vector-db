@@ -4,7 +4,7 @@ import logging
 silent_mode = False
 def_config = {
     'process': {
-        'json_ident': False,
+        'json_indent': None,
         'silent': False,
         'pdf_clip': [
             {'text': 'Протокол и основные функциональные',
@@ -42,6 +42,12 @@ def_config = {
         'options:': {
             'num_predict': 1000
         }
+    },
+    'confluence': {
+        'date_threshold': '2010-01-01T12:00:00',
+        'scan_pages_chunk_size': 10,
+        'include_pages': [],
+        'exclude_pages': [],
     }
 }
 config = def_config
@@ -64,3 +70,13 @@ def load_config(config_file):
             yaml.dump(config, f, allow_unicode=True)
             logger.info(f"Config saved into {config_file}: {config}")
     silent_mode = config['process']['silent']
+
+def get_config_value(keys, def_value):
+    global config
+    tmp = config
+    for key in keys:
+        if isinstance(tmp, dict) and key in tmp:
+            tmp = tmp[key]
+        else:
+            return def_value
+    return tmp
