@@ -104,9 +104,9 @@ def confluence_page2pdf(confluence_ptr, space_name, scan_results):
                     'link': page['link'],
                     'last_date': page['last_date'],
                 })
-                saved_cnt = saved_cnt + 1
+                saved_cnt += 1
             except Exception as e:
-                error_cnt = error_cnt + 1
+                error_cnt += 1
                 logger.warning(f"Failed to get_page_as_pdf [{json.dumps(page, indent=2, ensure_ascii=False)}]: {e}")
                 print(f"Failed to get page_as_pdf id=[{page_id}] title: '{page['title']}' utl: '{page['link']}'  {e.args[0] if e.args else 'Unknown error'}")
 

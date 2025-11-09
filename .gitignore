@@ -10,4 +10,4 @@ qdrant_storage/
 TESTS_DATA/
 **/*.log
 **/*.pdf
-*.bat
+*.cmd
