@@ -7,6 +7,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from json import JSONDecodeError
 from urllib.parse import unquote
 
+from py_src.data_converters import dir_tree
 from py_src.ext_api import ollama_api
 from py_src.ext_api import qdrant_api
 from py_src.utils import configuration, utils
@@ -21,6 +22,12 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.handle_get_http_file('text/html', 'index.html')
         elif self.path.endswith('favicon.ico'):
             self.handle_get_http_file('image/x-icon', 'favicon.ico')
+        elif self.path.startswith('/api/tree'):
+            tree_json = dir_tree.load_paths_tree_json(configuration.config["path"]['output'])
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(json.dumps(tree_json, indent=2, ensure_ascii=False).encode('utf-8'))
         elif self.path.startswith('/' + configuration.config['path']['output']):
             self.handle_get_data_file(self.path)
         else:
@@ -55,7 +62,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'application/json; charset=utf-8')
             self.send_header('Transfer-Encoding', 'chunked')
             self.end_headers()
-            asyncio.run(ollama_api.generate_lmm(self.handle_llm_response, request_json['question'], request_json['chunk']))
+            asyncio.run(
+                ollama_api.generate_lmm(self.handle_llm_response, request_json['question'], request_json['chunk']))
             self.wfile.write(b"0\r\n\r\n")
             self.wfile.flush()
             return
@@ -95,9 +103,11 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"\r\n")
         self.wfile.flush()
 
+
 def handle_question_context_search(request_json):
     vector, prompt_eval_count = ollama_api.calculate_embedding(request_json['question'])
-    data = qdrant_api.do_search(vector, request_json.get('topic'), request_json.get('top_results'))
+    topic = request_json.get('filter') if 'filter' in request_json else ''
+    data = qdrant_api.do_search(vector, topic, request_json.get('top_results'))
     sorted_data = sorted(data, key=lambda x: x['score'])
     chunks = []
     for item in sorted_data:
@@ -113,6 +123,7 @@ def handle_question_context_search(request_json):
             'document': payload['src'],
             'link': payload.get('link'),
             'title': payload.get('title'),
+            'topic': payload.get('topic'),
             'images': pages_png,
         })
     return chunks
@@ -121,7 +132,8 @@ def handle_question_context_search(request_json):
 def handle_question_substr_search(request_json):
     substr_tokens = re.split(r'[,\s]+', request_json['question'])
     substr_tokens = [item.strip().lower() for item in substr_tokens if item.strip()]
-    logger.info(f"handle_question_substr_search. substr_tokens: {substr_tokens}")
+    topic = request_json.get('filter') if 'filter' in request_json else ''
+    logger.info(f"handle_question_substr_search. substr_tokens: {substr_tokens} topic: {topic}")
     top_results = configuration.config['qdrant']['top_results']
     output_path = configuration.config["path"]["output"]
     chunks = []
@@ -130,24 +142,28 @@ def handle_question_substr_search(request_json):
         for chunks_json_file_name in files_json:
             chunks_json = utils.load_json(str(os.path.join(root_path, chunks_json_file_name)))
             src_doc = chunks_json['src']
-            for chunk in chunks_json['chunks']:
-                text = chunk['text'].lower()
-                if all(token in text for token in substr_tokens):
-                    pages_num = chunk['pages']
-                    pages_png = []
-                    for page in pages_num:
-                        pages_png.append(root_path + '/p' + str(page) + '.png')
-                    chunks.append({
-                        'id': chunk['id'],
-                        'text': text,
-                        'document': src_doc,
-                        'images': pages_png,
-                        'link': chunks_json.get('link'),
-                        'title': chunks_json.get('title'),
-                    })
-                    if len(chunks) == top_results:
-                        return chunks
+            index = '|'.join(chunks_json['index'])
+            if not topic or index.startswith(topic):
+                for chunk in chunks_json['chunks']:
+                    text = chunk['text'].lower()
+                    if all(token in text for token in substr_tokens):
+                        pages_num = chunk['pages']
+                        pages_png = []
+                        for page in pages_num:
+                            pages_png.append(root_path + '/p' + str(page) + '.png')
+                        chunks.append({
+                            'id': chunk['id'],
+                            'text': text,
+                            'document': src_doc,
+                            'images': pages_png,
+                            'link': chunks_json.get('link'),
+                            'title': chunks_json.get('title'),
+                            'topic': index,
+                        })
+                        if len(chunks) == top_results:
+                            return chunks
     return chunks
+
 
 def run():
     port = configuration.config['http']['port']

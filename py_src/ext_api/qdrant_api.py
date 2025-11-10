@@ -110,7 +110,7 @@ def do_search(vector, topic=None, top_results=None):
         'top': top_results if top_results is not None else configuration.config['qdrant']['top_results'],
         'with_payload': True,
     }
-    if topic is not None:
+    if topic:
         json_rq['filter'] = {
             'should': {
                 'key': 'topic',

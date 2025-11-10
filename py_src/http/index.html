@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Vector DB</title>
-     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         body {
             background-color: gray;
@@ -28,6 +28,17 @@
             padding: 10px;
             border-radius: 5px;
             margin-right: 10px;
+        }
+        span {
+            padding: 10px;
+            margin-left: 20px;
+            border-radius: 5px;
+            border-radius: 5px;
+            background-color: darkgray;
+            min-width: 100px;
+            min-height: 20px;
+            border: 1px solid #e0e0e0;
+            cursor: pointer;
         }
         .result-item {
             background-color: #ffffff;
@@ -127,6 +138,24 @@
             to { transform: rotate(360deg); }
         }
 
+        .tree ul {
+            list-style-type: none;
+            padding-left: 4px;
+        }
+        .node {
+            font-size: 12px;
+            color: black;
+            cursor: pointer;
+            padding: 2px;
+            margin: 2px 0;
+        }
+        .node:hover {
+            background-color: #f0f0f0;
+        }
+        .node.selected {
+            background-color: darkgray;
+        }
+
     </style>
 </head>
 <body>
@@ -135,15 +164,14 @@
     <button id="sendRequestButton" onclick="sendRequest()">?</button>
     <div id="sendRequestSpinner" class="spinner-search"></div>
     <label><input type="checkbox" id="checkBoxSubstrMode"/>As substring</label>
+    <span id="filter-value" onclick="toggleFilterTree()"></span>
 </div>
+<div id="filter-tree"></div>
 <div id="results"></div>
 
 <script>
-    document.getElementById('questionInput').addEventListener('keypress', function(event){
-        if(event.key === 'Enter'){
-            sendRequest();
-        }
-    });
+    const filterValueEl = document.getElementById('filter-value');
+
 
     async function sendRequest() {
         const question = document.getElementById('questionInput').value.trim();
@@ -153,12 +181,14 @@
                 document.getElementById('sendRequestSpinner').style.display = 'block';
 
                 const substr = document.getElementById('checkBoxSubstrMode').checked;
+                const filter =  filterValueEl.textContent
+
                 const response = await fetch('api/question', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ question, substr })
+                    body: JSON.stringify({ question, substr, filter })
                 });
 
                 const data = await response.json();
@@ -256,6 +286,77 @@
         }
     }
 
+    const filterTreeEl = document.getElementById('filter-tree');
+    let selectedPath = null;
+
+    function renderTree(data, parentPath = []) {
+        const ul = document.createElement('ul');
+        data.forEach(item => {
+            const li = document.createElement('li');
+            const node = document.createElement('div');
+            node.className = 'node';
+            node.textContent = item.name;
+            const currentPath = [...parentPath, item.name];
+            node.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isSelected = node.classList.contains('selected');
+                if (isSelected) {
+                    node.classList.remove('selected');
+                    selectedPath = null;
+                    filterValueEl.textContent = '';
+                    filterTreeEl.style.display = 'none';
+                } else {
+                    document.querySelectorAll('.node').forEach(n => n.classList.remove('selected'));
+                    node.classList.add('selected');
+                    selectedPath = currentPath;
+                    filterValueEl.textContent = selectedPath.join('|');
+                    filterTreeEl.style.display = 'none';
+                }
+            });
+            li.appendChild(node);
+            if (item.sub && item.sub.length > 0) {
+                const subtree = renderTree(item.sub, currentPath);
+                li.appendChild(subtree);
+            }
+            ul.appendChild(li);
+        });
+        return ul;
+    }
+    function toggleFilterTree() {
+      if (filterTreeEl.style.display === 'none') {
+        filterTreeEl.style.display = 'block';
+      } else {
+        filterTreeEl.style.display = 'none';
+      }
+    }
+
+//==========================================
+    document.getElementById('questionInput').addEventListener('keypress', function(event){
+        if(event.key === 'Enter'){
+            sendRequest();
+        }
+    });
+    filterValueEl.addEventListener('dblclick', function() {
+      filterValueEl.textContent=''
+    });
+
+    fetch('api/tree')
+        .then(response => {
+            if (!response.ok) {
+                const error = new Error('get tree HTTP: ' + response.status);
+                console.error(error);
+                throw error;
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('receive tree:', data);
+            filterTreeEl.appendChild(renderTree(data));
+            filterTreeEl.style.display = 'none';
+        })
+        .catch(error => {
+            console.error('get tree error:', error.message);
+        });
 </script>
 </body>
 </html>
